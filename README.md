@@ -14,6 +14,6 @@ This firmare makes sure the linear movement stops when an endstop is hit. It als
 
 # TODO
 
--  led blink using timer
--  input and output setup
+-  ~~led blink using timer~~
+-  ~~input and output setup~~
 -  create state machine
