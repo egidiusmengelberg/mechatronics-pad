@@ -10,45 +10,57 @@ bool blinkLed = false;
 //led
 #define LED_DDR DDRB
 #define LED_PORT PORTB
-#define LED_NUM 2
+#define LED_NUM 3  
+
+#define LED2_DDR DDRB
+#define LED2_PORT PORTB
+#define LED2_NUM 2
+
+#define BUZZ_DDR DDRE
+#define BUZZ_PORT PORTE
+#define BUZZ_NUM 5
 
 //motor_l
-#define MOTOR_L_DDR DDRB
-#define MOTOR_L_PORT PORTB
-#define MOTOR_L_NUM 2
+#define MOTOR_L_DDR DDRE
+#define MOTOR_L_PORT PORTE
+#define MOTOR_L_NUM 3
 
 //motor_r
-#define MOTOR_R_DDR DDRB
-#define MOTOR_R_PORT PORTB
-#define MOTOR_R_NUM 2
+#define MOTOR_R_DDR DDRH
+#define MOTOR_R_PORT PORTH
+#define MOTOR_R_NUM 3
 
 //button_up
-#define BUTTON_UP_DDR DDRB
-#define BUTTON_UP_PORT PORTB
-#define BUTTON_UP_PIN PINB
-#define BUTTON_UP_NUM 2
+#define BUTTON_UP_DDR DDRC
+#define BUTTON_UP_PORT PORTC
+#define BUTTON_UP_PIN PINC
+#define BUTTON_UP_NUM 6
 //button_down
-#define BUTTON_DOWN_DDR DDRB
-#define BUTTON_DOWN_PORT PORTB
-#define BUTTON_DOWN_PIN PINB
-#define BUTTON_DOWN_NUM 2
+#define BUTTON_DOWN_DDR DDRC
+#define BUTTON_DOWN_PORT PORTC
+#define BUTTON_DOWN_PIN PINC
+#define BUTTON_DOWN_NUM 7
 
 //endstop_min
 #define ENDSTOP_MIN_DDR DDRB
-#define ENDSTOP_MIN_PORT PORTB
-#define ENDSTOP_MIN_PIN PINB
-#define ENDSTOP_MIN_NUM 2
+#define ENDSTOP_MIN_PORT PORTL
+#define ENDSTOP_MIN_PIN PINL
+#define ENDSTOP_MIN_NUM 0
 //endstop_max
-#define ENDSTOP_MAX_DDR DDRB
-#define ENDSTOP_MAX_PORT PORTB
-#define ENDSTOP_MAX_PIN PINB
-#define ENDSTOP_MAX_NUM 2
+#define ENDSTOP_MAX_DDR DDRL
+#define ENDSTOP_MAX_PORT PORTL
+#define ENDSTOP_MAX_PIN PINL
+#define ENDSTOP_MAX_NUM 1
 
-//functions
+//function declarations
 void initMotor();
 void moveMotor(bool direction);
 void stopMotor();
 void initButtons();
+bool upPressed();
+bool downPressed();
+bool minPressed();
+bool maxPressed();
 void initLed(void);
 void ledOn(void);
 void ledOff(void);
@@ -61,21 +73,22 @@ int main(void) {
 
     while(1) {
 		// while up pressed and not up endstop move: up and blink
-		while (upPressed && !maxPressed)
-		{
-			ledOn();
-			moveMotor(true);
-		}
-		
-		// while down pressed and not down endstop: move down and blink
-		while (downPressed && !minPressed)
-		{
-			ledOn();
-			moveMotor(false);
-		}
+		while (upPressed() && !maxPressed()) {
+            if (!blinkLed) {
+                ledOn();
+            }
+            moveMotor(true);
+        }
 
-		ledOff();
-		stopMotor();
+        while (downPressed() && !minPressed()) {
+            if (!blinkLed) {
+                ledOn();
+            }
+            moveMotor(false);
+        }
+
+        stopMotor();
+        ledOff();
 	}
 }
 
@@ -147,12 +160,16 @@ bool maxPressed() {
 
 void initLed(void) {
     LED_DDR |= (1 << LED_NUM);
+    LED2_DDR |= (1 << LED2_NUM);  
+    BUZZ_DDR |= (1 << BUZZ_NUM);  
+
+    BUZZ_PORT &= ~(1 << BUZZ_NUM);
 
     TCCR4A = 0;// set entire TCCR1A register to 0
     TCCR4B = 0;// same for TCCR1B
     TCNT4  = 0;//initialize counter value to 0
     // set compare match register for 1hz increments
-    OCR4A = 15624/1;// = (16*10^6) / (1*1024) - 1 (must be <65536)
+    OCR4A = 7500;// = (16*10^6) / (1*1024) - 1 (must be <65536)
     // turn on CTC mode
     TCCR4B |= (1 << WGM12);
     // Set CS12 and CS10 bits for 1024 prescaler
@@ -165,15 +182,21 @@ void initLed(void) {
 
 void ledOn(void) {
     blinkLed = true;
+    LED2_PORT |= (1 << LED2_NUM);
 }
 
 void ledOff(void) {
     blinkLed = false;
     LED_PORT &= ~(1 << LED_NUM);
+    LED2_PORT &= ~(1 << LED2_NUM);
+    BUZZ_PORT |= (1 << BUZZ_NUM);
 }
 
 ISR(TIMER4_COMPA_vect){
+    // LED_PORT |= (1 << LED_NUM);
     if (blinkLed) {
         LED_PORT ^= (1 << LED_NUM);
+        LED2_PORT ^= (1 << LED2_NUM);
+        BUZZ_PORT ^= (1 << BUZZ_NUM);
     }
 }
